@@ -1,6 +1,9 @@
 from __future__ import annotations
+
+from random import randint
+
 import numpy as np
-from Game import *
+import settings
 
 
 class Coordinates:
@@ -16,14 +19,15 @@ class Coordinates:
 
 
 class Snake:
-    def __init__(self, game: Game, head_y: int, head_x: int, length: int = 3) -> None:
+    def __init__(self, head_y: int, head_x: int, apple_position: Coordinates, length: int = 3) -> None:
+        self.score = 0
         self.length = length
         self.head = Coordinates(head_y, head_x)
         self.body = np.array([Coordinates(head_y, head_x - 2), Coordinates(head_y, head_x - 1)], dtype=Coordinates)
         self.direction = 'R'
         self.movements = {'R': Coordinates(0, 1), 'L': Coordinates(0, -1), 'U': Coordinates(-1, 0), 'D': Coordinates(1, 0)}
-        self.game = game
         self.is_alive = True
+        self.apple_position = apple_position
 
     def __str__(self) -> str:
         return f'{self.body} {self.head}'
@@ -53,23 +57,20 @@ class Snake:
         :param new_head: new coordinates of the snake's head
         :return: True if he will hit a wall, False otherwise
         """
-        return new_head.x < 0 or new_head.x > self.game.max_x or new_head.y < 0 or new_head.y > self.game.max_y
+        return new_head.x < 0 or new_head.x > settings.X_SIZE or new_head.y < 0 or new_head.y > settings.Y_SIZE
 
     def move(self) -> bool:
         """
         Moves the snake according to its direction
-        :return: True if the snake succeeded to move, False otherwise
+        :return: True if the snake survived to the move, False otherwise
         """
-        try:
-            new_head = self.head + self.movements[self.direction]
-        except KeyError:  # if the direction is not correct
-            return False
+        new_head = self.head + self.movements[self.direction]
         if self.is_going_back(self.direction):
-            return False
+            return True
         if self.will_hit_body(new_head) or self.will_hit_wall(new_head):
             self.is_alive = False
             return False
-        if new_head == self.game.apple_position:
+        if new_head == self.apple_position:
             self.on_eating_apple(new_head)
         else:
             self.shift_body(new_head)
@@ -81,10 +82,7 @@ class Snake:
         :param direction: direction of the movement: R,L,U,D
         :return: True if he is going back onto himself, False otherwise
         """
-        try:
-            new_head = self.head + self.movements[direction]
-        except KeyError:
-            return True
+        new_head = self.head + self.movements[direction]
         return new_head == self.body[-1]
 
     def on_eating_apple(self, new_head: Coordinates) -> None:
@@ -95,15 +93,15 @@ class Snake:
         self.body = np.append(self.body, self.head)
         self.head = new_head
         self.length += 1
-        self.game.score += 1
-        self.game.generate_new_apple()
+        self.score += 1
+        self.generate_new_apple()
 
     def game_completed(self) -> bool:
         """
         Checks if the snake takes up all the space of the game, which means there are no remaining space for apples
         :return: True if the game is complete, False otherwise
         """
-        return self.length == (self.game.max_x + 1) * (self.game.max_y + 1)
+        return self.length == settings.X_SIZE * settings.X_SIZE
 
     def pick_new_direction(self, direction: str) -> None:
         """
@@ -112,3 +110,11 @@ class Snake:
         """
         if not self.is_going_back(direction):
             self.direction = direction
+
+    def generate_new_apple(self) -> None:
+        """
+        Generates a new apple on the field, that is not placed on the snake
+        """
+        self.apple_position = Coordinates(randint(0, settings.X_SIZE - 1), randint(0,  settings.Y_SIZE - 1))
+        while self.apple_position in self.body or self.apple_position == self.head:
+            self.apple_position = Coordinates(randint(0, settings.X_SIZE - 1), randint(0, settings.Y_SIZE - 1))
