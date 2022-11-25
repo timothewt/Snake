@@ -22,6 +22,7 @@ class Brain:
         discount:           discount factor
         epsilon:            epsilon value for the epsilon-greedy algorithm
         Q_table:            Q-table of the program which contains the values for every action at each possible state
+        training_enabled:   If False, does not update the Q-table and disables the epsilon-greedy algorithm
     """
 
     def __init__(self):
